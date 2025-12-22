@@ -1,0 +1,41 @@
+{
+    "debug": true,
+    
+    "components": {
+        "DS1": {
+            "type": "button",
+            "category": "sensor",
+            "simulated": true
+        },
+        "DL": {
+            "type": "led_diode",
+            "category": "actuator",
+            "simulated": true
+        },
+        "DUS1": {
+            "type": "ultrasonic_sensor",
+            "category": "sensor",
+            "simulated": true
+        },
+        "DB": {
+            "type": "buzzer",
+            "category": "actuator",
+            "simulated": true
+        },
+        "DPIR1": {
+            "type": "motion_sensor",
+            "category": "sensor",
+            "simulated": true
+        },
+        "DMS": {
+            "type": "membrane_switch",
+            "category": "sensor",
+            "simulated": true
+        },
+        "WEBC": {
+            "type": "web_camera",
+            "category": "sensor",
+            "simulated": true
+        }
+    }
+}
