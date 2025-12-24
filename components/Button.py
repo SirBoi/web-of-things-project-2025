@@ -18,7 +18,7 @@ class Button(Component):
 
                 print(f"\n> Component {self.id} (Button)" \
                       f"\n> Timestamp: {time.strftime('%H:%M:%S', time.localtime())}" \
-                      f"\n> Current value: {"pressed" if self.is_pressed else "released"}")
+                      f"\n> Current value: {'pressed' if self.is_pressed else 'released'}")
 
             time.sleep(self.delay)
         

@@ -67,21 +67,21 @@ def main():
             daemon=True
         ))
 
-        if config["debug"]:
-            components = config["components"]
+        if config['debug']:
+            components = config['components']
 
             for c in components:
                 try:
-                    if components[c]["simulated"]:
+                    if components[c]['simulated']:
                         component = create_component(components[c], simulated=True)
                         all_components.append(component)
-                        started_components[components[c]["type"]].append(component)
+                        started_components[components[c]['type']].append(component)
                         threads.append(threading.Thread(
                             name=f"T{component.id}",
                             target=component.run_simulated if component.simulated else component.run,
                             args=(break_event,)
                         ))
-                        print(f"> Component {component.id} ({components[c]["type"]}) started.")
+                        print(f"> Component {component.id} ({components[c]['type']}) started.")
                 except Exception as e:
                     print(e)
         else:
