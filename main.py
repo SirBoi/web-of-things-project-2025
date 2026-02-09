@@ -2,6 +2,7 @@ from component_factory import create_component
 import json
 import threading
 import time
+import paho.mqtt.publish as publish
 
 
 CONFIG_FILE_PATH = "config.json"
@@ -15,6 +16,11 @@ started_components = {
     "membrane_switch": [],
     "web_camera": []
 }
+
+dht_batch = []
+publish_data_counter = {"value": 0}
+publish_data_limit = {"value": 1}
+counter_lock = threading.Lock()
 
 
 def console_thread(break_event):
@@ -50,6 +56,19 @@ def console_thread(break_event):
     except:
         0
 
+def publisher_task(event, config):
+    while True:
+        event.wait()
+
+        with counter_lock:
+            local_dht_batch = dht_batch.copy()
+            publish_data_counter["value"] = 0
+            dht_batch.clear()
+        
+        publish.multiple(local_dht_batch, hostname=config['device']['hostname'], port=config['device']['port'])
+        print(f'Published {publish_data_limit["value"]} DHT values at {time.strftime('%H:%M:%S', time.localtime())}.')
+        event.clear()
+
 def main():
     try:
         print("> Starting PI1 device...")
@@ -59,6 +78,16 @@ def main():
 
         threads = []
         break_event = threading.Event()
+        publish_data_limit["value"] = config['device']['publish-data-limit']
+
+        publish_event = threading.Event()
+        publisher_thread = threading.Thread(
+            name="PT",
+            target=publisher_task,
+            args=(publish_event, config),
+            daemon=True
+        )
+        publisher_thread.start()
 
         threads.append(threading.Thread(
             name="CT",
@@ -67,21 +96,22 @@ def main():
             daemon=True
         ))
 
-        if config['debug']:
+        if config['device']['simulated']:
             components = config['components']
 
             for c in components:
                 try:
                     if components[c]['simulated']:
-                        component = create_component(components[c], simulated=True)
+                        component = create_component(c, components[c], True)
                         all_components.append(component)
                         started_components[components[c]['type']].append(component)
                         threads.append(threading.Thread(
                             name=f"T{component.id}",
-                            target=component.run_simulated if component.simulated else component.run,
-                            args=(break_event,)
+                            target=component.run_simulated,
+                            # target=component.run_simulated if component.simulated else component.run,
+                            args=(break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event)
                         ))
-                        print(f"> Component {component.id} ({components[c]['type']}) started.")
+                        print(f"> [SIMULATED] Component {component.id} ({components[c]['type']}) started.")
                 except Exception as e:
                     print(e)
         else:
@@ -89,6 +119,7 @@ def main():
         
         for thread in threads:
             thread.start()
+        
         while not break_event.is_set():
             time.sleep(1)
 
@@ -97,7 +128,6 @@ def main():
     
     finally:
         break_event.set()
-
 
         for thread in threads:
             thread.join()

@@ -1,16 +1,25 @@
 {
-    "debug": true,
+    "device": {
+        "id": "PI1",
+        "name": "DHT1 - Hallway",
+        "simulated": true,
+        "pin": 17,
+        "hostname": "localhost",
+        "ip": "192.168.107.141",
+        "port": 1883,
+        "publish-data-limit": 5
+    },
     
     "components": {
         "DS1": {
             "type": "button",
             "category": "sensor",
-            "simulated": true
+            "simulated": false
         },
         "DL": {
             "type": "led_diode",
             "category": "actuator",
-            "simulated": true
+            "simulated": false
         },
         "DUS1": {
             "type": "ultrasonic_sensor",
@@ -20,7 +29,7 @@
         "DB": {
             "type": "buzzer",
             "category": "actuator",
-            "simulated": true
+            "simulated": false
         },
         "DPIR1": {
             "type": "motion_sensor",
@@ -30,7 +39,7 @@
         "DMS": {
             "type": "membrane_switch",
             "category": "sensor",
-            "simulated": true
+            "simulated": false
         },
         "WEBC": {
             "type": "web_camera",

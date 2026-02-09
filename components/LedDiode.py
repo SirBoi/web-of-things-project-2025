@@ -3,17 +3,11 @@ from random import random
 import time
 
 class LedDiode(Component):
-    def __init__(self, simulated):
-        super().__init__(simulated)
+    def __init__(self, name, simulated):
+        super().__init__(name, simulated)
         self.delay = 1
         self.is_on = False
 
-    def run(self, break_event):
-        0 # Not needed for actuators
-
-    def run_simulated(self, break_event):
-        0 # Not needed for actuators
-    
     def execute(self, command_code):
         0 # Implement later
 
@@ -23,16 +17,33 @@ class LedDiode(Component):
             
             self.is_on = True
 
-            print(f"\n> Component {self.id} (LED Diode)" \
+            print(f"\n> [SIMULATED] Component {self.id} (LED)" \
                   f"\n> Timestamp: {time.strftime('%H:%M:%S', time.localtime())}" \
-                  f"\n> LED Diode has been turned on")
+                  f"\n> LED has been turned on")
         elif command_code == "off":
             if not self.is_on: return
 
             self.is_on = False
 
-            print(f"\n> Component {self.id} (LED Diode)" \
+            print(f"\n> [SIMULATED] Component {self.id} (LED)" \
                   f"\n> Timestamp: {time.strftime('%H:%M:%S', time.localtime())}" \
-                  f"\n> LED Diode has been turned off")
+                  f"\n> LED has been turned off")
         else:
             print("\n> Unknown command.")
+    
+    def get_reading(self):
+        0 # Implement later
+
+    def get_reading_simulated(self):
+        if random() <= 0.1:
+            self.is_on = not self.is_on
+
+        return {
+            "name": self.name,
+            "id": self.id,
+            "description": "LED",
+            "simulated": True,
+            "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+            "value": self.is_on,
+            "message": "LED has been turned on" if self.is_on else "LED has been turned off"
+        }
