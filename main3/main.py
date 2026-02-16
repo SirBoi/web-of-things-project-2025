@@ -1,3 +1,6 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from component_factory import create_component
 import json
 import threading
@@ -124,7 +127,7 @@ def main():
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\n> PI1 device execution interrupted...")
+        print("\n> PI3 device execution interrupted...")
     
     finally:
         break_event.set()
@@ -138,7 +141,7 @@ def main():
             GPIO.cleanup()
         '''
 
-        print("\n> PI1 device turned off")
+        print("\n> PI3 device turned off")
 
 if __name__ == "__main__":
     main()

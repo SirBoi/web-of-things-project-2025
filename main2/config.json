@@ -1,0 +1,35 @@
+{
+    "device": {
+        "id": "PI2",
+        "name": "Kitchen",
+        "simulated": true,
+        "pin": 17,
+        "hostname": "localhost",
+        "ip": "192.168.107.141",
+        "port": 1883,
+        "publish-data-limit": 5
+    },
+    
+    "components": {
+        "DS2": {
+            "type": "button",
+            "category": "sensor",
+            "simulated": true
+        },
+        "DUS2": {
+            "type": "ultrasonic_sensor",
+            "category": "sensor",
+            "simulated": true
+        },
+        "DPIR2": {
+            "type": "motion_sensor",
+            "category": "sensor",
+            "simulated": true
+        },
+        "BTN": {
+            "type": "button",
+            "category": "sensor",
+            "simulated": true
+        }
+    }
+}

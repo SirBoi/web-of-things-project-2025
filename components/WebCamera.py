@@ -6,6 +6,7 @@ class WebCamera(Component):
     def __init__(self, name, simulated):
         super().__init__(name, simulated)
         self.delay = 1
+        self.value = True
     
     def execute(self, command_code):
         0 # Not needed for sensors
@@ -25,7 +26,7 @@ class WebCamera(Component):
             "id": self.id,
             "description": "Web camera",
             "simulated": True,
-            "timestamp": time.strftime('%H:%M:%S', time.localtime()),
+            "timestamp": time.strftime("%H:%M:%S", time.localtime()),
             "value": 1,
             "message": "Web camera recording..."
         }
