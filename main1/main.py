@@ -127,7 +127,7 @@ def main():
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\n> PI1 device execution interrupted...")
+        print(f"\n> {config['device']['id']} device execution interrupted...")
     
     finally:
         break_event.set()
@@ -141,7 +141,7 @@ def main():
             GPIO.cleanup()
         '''
 
-        print("\n> PI1 device turned off")
+        print(f"\n> {config['device']['id']} device turned off")
 
 if __name__ == "__main__":
     main()

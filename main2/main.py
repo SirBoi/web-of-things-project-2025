@@ -74,7 +74,7 @@ def publisher_task(event, config):
 
 def main():
     try:
-        print("> Starting PI1 device...")
+        print("> Starting PI2 device...")
 
         with open(CONFIG_FILE_PATH) as f:
             config = json.load(f)
@@ -127,7 +127,7 @@ def main():
             time.sleep(1)
 
     except KeyboardInterrupt:
-        print("\n> PI device execution interrupted...")
+        print(f"\n> {config['device']['id']} device execution interrupted...")
     
     finally:
         break_event.set()
@@ -141,7 +141,7 @@ def main():
             GPIO.cleanup()
         '''
 
-        print("\n> PI2 device turned off")
+        print(f"\n> {config['device']['id']} device turned off")
 
 if __name__ == "__main__":
     main()
