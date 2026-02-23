@@ -1,144 +1,98 @@
-from component_factory import create_component
-import json
-import threading
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.templating import Jinja2Templates
+from influxdb_client import InfluxDBClient
+import cv2
 import time
-import paho.mqtt.publish as publish
 
+app = FastAPI()
+templates = Jinja2Templates(directory="templates")
 
-CONFIG_FILE_PATH = "config.json"
-all_components = []
-started_components = {
-    "button": [],
-    "led_diode": [],
-    "ultrasonic_sensor": [],
-    "buzzer": [],
-    "motion_sensor": [],
-    "membrane_switch": [],
-    "web_camera": []
+INFLUX_URL = "http://localhost:8086"
+INFLUX_TOKEN = "YOUR_TOKEN"
+INFLUX_ORG = "YOUR_ORG"
+INFLUX_BUCKET = "sensors"
+
+client = InfluxDBClient(
+    url=INFLUX_URL,
+    token=INFLUX_TOKEN,
+    org=INFLUX_ORG
+)
+
+query_api = client.query_api()
+
+DEVICES = {
+    "pi1": ["temperature", "humidity", "motion"],
+    "pi2": ["temperature", "door", "light"],
+    "pi3": ["temperature", "humidity", "camera"]
 }
 
-dht_batch = []
-publish_data_counter = {"value": 0}
-publish_data_limit = {"value": 1}
-counter_lock = threading.Lock()
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request):
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "devices": DEVICES
+    })
 
 
-def console_thread(break_event):
-    try:
-        while not break_event.is_set():
-            command = input().strip().lower()
+@app.get("/api/data/{device_id}/{component}")
+def get_data(device_id: str, component: str, start: str, stop: str):
+    query = f'''
+    from(bucket: "{INFLUX_BUCKET}")
+      |> range(start: time(v: "{start}"), stop: time(v: "{stop}"))
+      |> filter(fn: (r) => r["device_id"] == "{device_id}")
+      |> filter(fn: (r) => r["component"] == "{component}")
+    '''
 
-            if command == "x":
-                break_event.set()
-            elif len(command.split(" ")) == 2:
-                component_id = command.split(" ")[0]
-                command_code = command.split(" ")[1]
+    tables = query_api.query(query)
+    results = []
 
-                for component in all_components:
-                    if str(component.id) == str(component_id):
-                        if component.simulated: component.execute_simulated(command_code)
-                        else: component.execute(command_code)
-                        break
+    for table in tables:
+        for record in table.records:
+            results.append({
+                "time": record.get_time().isoformat(),
+                "value": record.get_value()
+            })
 
-                # Separate component types
-                '''
-                for led_diode in started_components["led_diode"]:
-                    if led_diode.id == component_id:
-                        led_diode.execute(command_code)
-                        break
-                for buzzer in started_components["buzzer"]:
-                    if buzzer.id == component_id:
-                        buzzer.execute(command_code)
-                        break
-                '''
-            else:
-                print("\n> Unknown command.")
-    except:
-        0
+    return results
 
-def publisher_task(event, config):
+@app.get("/api/current/{device_id}/{component}")
+def get_current(device_id: str, component: str):
+    query = f'''
+    from(bucket: "{INFLUX_BUCKET}")
+      |> range(start: -5m)
+      |> filter(fn: (r) => r["device_id"] == "{device_id}")
+      |> filter(fn: (r) => r["component"] == "{component}")
+      |> last()
+    '''
+
+    tables = query_api.query(query)
+
+    for table in tables:
+        for record in table.records:
+            return {"value": record.get_value()}
+
+    return {"value": "No data"}
+
+def generate_camera():
+    cap = cv2.VideoCapture(0)
+
     while True:
-        event.wait()
+        success, frame = cap.read()
+        if not success:
+            break
 
-        with counter_lock:
-            local_dht_batch = dht_batch.copy()
-            publish_data_counter["value"] = 0
-            dht_batch.clear()
-        
-        publish.multiple(local_dht_batch, hostname=config['device']['hostname'], port=config['device']['port'])
-        print(f'Published {publish_data_limit["value"]} DHT values at {time.strftime("%H:%M:%S", time.localtime())}.')
-        event.clear()
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
 
-def main():
-    try:
-        print("> Starting PI1 device...")
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
 
-        with open(CONFIG_FILE_PATH) as f:
-            config = json.load(f)
+        time.sleep(0.05)
 
-        threads = []
-        break_event = threading.Event()
-        publish_data_limit["value"] = config['device']['publish-data-limit']
-
-        publish_event = threading.Event()
-        publisher_thread = threading.Thread(
-            name="PT",
-            target=publisher_task,
-            args=(publish_event, config),
-            daemon=True
-        )
-        publisher_thread.start()
-
-        threads.append(threading.Thread(
-            name="CT",
-            target=console_thread,
-            args=(break_event,),
-            daemon=True
-        ))
-
-        if config['device']['simulated']:
-            components = config['components']
-
-            for c in components:
-                try:
-                    if components[c]['simulated']:
-                        component = create_component(c, components[c], True)
-                        all_components.append(component)
-                        started_components[components[c]['type']].append(component)
-                        threads.append(threading.Thread(
-                            name=f"T{component.id}",
-                            target=component.run_simulated,
-                            # target=component.run_simulated if component.simulated else component.run,
-                            args=(break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event)
-                        ))
-                        print(f"> [SIMULATED] Component {component.id} ({components[c]['type']}) started.")
-                except Exception as e:
-                    print(e)
-        else:
-            0 # Actual implementation
-        
-        for thread in threads:
-            thread.start()
-        
-        while not break_event.is_set():
-            time.sleep(1)
-
-    except KeyboardInterrupt:
-        print("\n> PI1 device execution interrupted...")
-    
-    finally:
-        break_event.set()
-
-        for thread in threads:
-            thread.join()
-        
-        # Implement later. Turn off power to actuators.
-        '''
-        if GPIO:
-            GPIO.cleanup()
-        '''
-
-        print("\n> PI1 device turned off")
-
-if __name__ == "__main__":
-    main()
+@app.get("/camera")
+def camera_feed():
+    return StreamingResponse(
+        generate_camera(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
