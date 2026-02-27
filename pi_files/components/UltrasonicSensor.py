@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     from mock_gpio import GPIO
 
 
-class UltrasonicSensor():
+class UltrasonicSensor:
     def __init__(self, name, type, simulated):
         self.name = name
         self.type = type
@@ -15,23 +15,19 @@ class UltrasonicSensor():
         self.delay = 0.1
         self.TRIG_PIN_NUMBER = 1
         self.ECHO_PIN_NUMBER = 2
-
         self.value = 20.0
-        self.dht_batch = None
 
     def run(self, break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event):
-        self.dht_batch = dht_batch
-
-        if (not self.simulated):
+        if not self.simulated:
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self.TRIG_PIN_NUMBER, GPIO.OUT)
             GPIO.setup(self.ECHO_PIN_NUMBER, GPIO.IN)
 
         while not break_event.is_set():
-            with counter_lock:
-                reading = self.get_reading_simulated() if self.simulated else self.get_reading()
-                dht_batch.append((self.name, json.dumps(reading), 0, True))
+            reading = self.get_reading_simulated() if self.simulated else self.get_reading()
 
+            with counter_lock:
+                dht_batch.append((self.name, json.dumps(reading), 0, True))
                 publish_data_counter["value"] += 1
                 if publish_data_counter["value"] >= publish_data_limit["value"]:
                     publish_event.set()
@@ -48,8 +44,6 @@ class UltrasonicSensor():
             v = float(command_value)
             if 1.0 <= v <= 30.0:
                 self.value = v
-                if self.dht_batch is not None:
-                    self.dht_batch.append((self.name, json.dumps(self.formated_data()), 0, True))
         except:
             pass
 
@@ -81,13 +75,14 @@ class UltrasonicSensor():
 
         pulse_duration = pulse_end_time - pulse_start_time
         self.value = (pulse_duration * 34300.0) / 2.0
-
         return self.formated_data()
 
     def get_reading_simulated(self):
         self.value += (random.randrange(100) - 50) / 100.0
-        if self.value < 1: self.value = 1
-        if self.value > 30: self.value = 30
+        if self.value < 1:
+            self.value = 1
+        if self.value > 30:
+            self.value = 30
         return self.formated_data()
 
     def formated_data(self):

@@ -7,7 +7,7 @@ except ModuleNotFoundError:
     from mock_gpio import GPIO
 
 
-class MembraneSwitch():
+class MembraneSwitch:
     def __init__(self, name, type, simulated):
         self.name = name
         self.type = type
@@ -23,14 +23,11 @@ class MembraneSwitch():
         self.PIN_C3 = 7
         self.PIN_C4 = 8
 
-        self.options = ['1','2','3','4','5','6','7','8','9','0','*','#']
-        self.value = '1'  # store character
-        self.dht_batch = None
+        self.options = ['1','2','3','4','5','6','7','8','9','0','*','#','A','B','C','D']
+        self.value = '1'
 
     def run(self, break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event):
-        self.dht_batch = dht_batch
-
-        if (not self.simulated):
+        if not self.simulated:
             GPIO.setwarnings(False)
             GPIO.setmode(GPIO.BCM)
 
@@ -44,10 +41,10 @@ class MembraneSwitch():
             GPIO.setup(self.PIN_C4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 
         while not break_event.is_set():
-            with counter_lock:
-                reading = self.get_reading_simulated() if self.simulated else self.get_reading()
-                dht_batch.append((self.name, json.dumps(reading), 0, True))
+            reading = self.get_reading_simulated() if self.simulated else self.get_reading()
 
+            with counter_lock:
+                dht_batch.append((self.name, json.dumps(reading), 0, True))
                 publish_data_counter["value"] += 1
                 if publish_data_counter["value"] >= publish_data_limit["value"]:
                     publish_event.set()
@@ -61,10 +58,9 @@ class MembraneSwitch():
 
     def run_command(self, command_value):
         try:
-            if command_value in self.options:
-                self.value = str(command_value)
-                if self.dht_batch is not None:
-                    self.dht_batch.append((self.name, json.dumps(self.formated_data()), 0, True))
+            s = str(command_value).strip()
+            if s in self.options:
+                self.value = s
         except:
             pass
 
@@ -76,8 +72,6 @@ class MembraneSwitch():
         return self.formated_data()
 
     def get_reading_simulated(self):
-        if random.randrange(50) == 0:
-            self.value = str(random.choice(self.options))
         return self.formated_data()
 
     def formated_data(self):

@@ -48,6 +48,21 @@ class Gyroscope():
         finally:
             print(f"> {'SIMULATED ' if self.simulated else ''}Component {self.name} ({self.__class__.__name__}) turned off.")
 
+    def run_command(self, command_value):
+        try:
+            parts = str(command_value).strip().split()
+            if len(parts) == 1:
+                v = float(parts[0])
+                self.gx = v
+                self.gy = 0.0
+                self.gz = 0.0
+            elif len(parts) == 3:
+                self.gx = float(parts[0])
+                self.gy = float(parts[1])
+                self.gz = float(parts[2])
+        except:
+            pass
+
     def _init_mpu(self):
         if SMBus is None:
             self._warn_once("smbus2 not installed; gyroscope running in simulated mode.")
