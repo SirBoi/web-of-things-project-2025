@@ -1,5 +1,6 @@
 import time
 import json
+import random
 try:
     import RPi.GPIO as GPIO
 except ModuleNotFoundError:
@@ -102,7 +103,10 @@ class RgbLedDiode():
         return self.formated_data()
 
     def get_reading_simulated(self):
-        # no random toggling by default; stays at commanded value
+        if random.randrange(50) == 0:
+            self.r = random.randrange(256)
+            self.g = random.randrange(256)
+            self.b = random.randrange(256)
         return self.formated_data()
 
     def formated_data(self):

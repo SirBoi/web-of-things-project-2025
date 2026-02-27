@@ -2,11 +2,11 @@ import json
 import threading
 import time
 import paho.mqtt.publish as publish
-
+import paho.mqtt.client as mqtt
+import os
 from component_factory import create_component
 
 
-PI_NAME = "PI1"
 
 all_components = []
 
@@ -14,6 +14,7 @@ dht_batch = []
 publish_data_counter = {"value": 0}
 publish_data_limit = {"value": 1}
 counter_lock = threading.Lock()
+
 
 
 def console_task(break_event):
@@ -49,9 +50,52 @@ def publisher_task(event, hostname, port):
         print(f'Published {publish_data_limit["value"]} DHT values at {time.strftime("%H:%M:%S", time.localtime())}.')
         event.clear()
 
+def command_listener_task(break_event, hostname, port):
+    def on_connect(client, userdata, flags, rc):
+        client.subscribe("CMD/#")
+
+    def on_message(client, userdata, msg):
+        try:
+            parts = msg.topic.split("/")
+            if len(parts) != 2:
+                return
+            target = parts[1].strip()
+
+            payload = msg.payload.decode("utf-8")
+
+            for component in all_components:
+                if str(component.name).upper() == str(target).upper():
+                    try:
+                        component.run_command(payload)
+                    except Exception as e:
+                        print(f"> Command execution error for {target}: {e}")
+                    return
+        except Exception as e:
+            print(f"> Command listener error: {e}")
+
+    client = mqtt.Client()
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.connect(hostname, port, 60)
+    client.loop_start()
+
+    try:
+        while not break_event.is_set():
+            time.sleep(0.1)
+    finally:
+        try:
+            client.loop_stop()
+            client.disconnect()
+        except:
+            pass
+
 def main():
     try:
-        with open("config.json") as f:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(base_dir, "config.json")
+
+        with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
 
         publish_data_limit["value"] = config["publish-data-limit"]
@@ -82,6 +126,13 @@ def main():
             name="CT",
             target=console_task,
             args=(break_event,),
+            daemon=True
+        ))
+
+        threads.append(threading.Thread(
+            name="CMD",
+            target=command_listener_task,
+            args=(break_event, config["hostname"], config["port"]),
             daemon=True
         ))
 
