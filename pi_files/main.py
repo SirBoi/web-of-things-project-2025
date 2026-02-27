@@ -57,18 +57,16 @@ def main():
         publish_data_limit["value"] = config["publish-data-limit"]
         devices = config["devices"]
 
-        device, device_name = None, None
-        for name, data in devices.items():
-            if data.get("used"):
-                device = data
-                device_name = name
-                break
+        active_devices = []
+        for device_name, device in devices.items():
+            if device.get("used"):
+                active_devices.append((device_name, device))
 
-        if device is None:
-            raise Exception("No active device found in config.")
+        if not active_devices:
+            raise Exception("No active device found in config (set at least one 'used': true).")
 
-        print(f"> Starting {device_name} device...")
-        
+        print("> Active devices:", ", ".join([name for name, _ in active_devices]))
+
         threads = []
 
         publish_event = threading.Event()
@@ -78,6 +76,7 @@ def main():
             args=(publish_event, config['hostname'], config['port']),
             daemon=True
         )
+
         break_event = threading.Event()
         threads.append(threading.Thread(
             name="CT",
@@ -86,52 +85,53 @@ def main():
             daemon=True
         ))
 
-        for component_name in device:
-            try:
-                if (component_name == 'used'):
-                    continue
+        for device_name, device in active_devices:
+            print(f"> Loading components for {device_name}...")
 
-                component = device[component_name]
+            for component_name in device:
+                try:
+                    if component_name == 'used':
+                        continue
 
-                if (component['simulated']):
-                    c = create_component(component_name, component, simulated=True)
-                else:
-                    c = create_component(component_name, component, simulated=False)
-                
-                all_components.append(c)
+                    component_cfg = device[component_name]
 
-                threads.append(threading.Thread(
-                    name=f"T-{c.name}",
-                    target=c.run,
-                    args=(break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event)
-                ))
+                    if component_cfg.get('simulated'):
+                        c = create_component(component_name, component_cfg, simulated=True)
+                    else:
+                        c = create_component(component_name, component_cfg, simulated=False)
 
-                print(f"> {'SIMULATED ' if c.simulated else ''}Component {c.name} ({component['type']}) started.")
-            except Exception as e:
-                print(e)
-        
+                    all_components.append(c)
+
+                    threads.append(threading.Thread(
+                        name=f"T-{device_name}-{c.name}",
+                        target=c.run,
+                        args=(break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event),
+                        daemon=True
+                    ))
+
+                    print(f"> [{device_name}] {'SIMULATED ' if c.simulated else ''}Component {c.name} ({component_cfg['type']}) started.")
+                except Exception as e:
+                    print(e)
+
         publisher_thread.start()
 
         for thread in threads:
             thread.start()
-        
+
         while not break_event.is_set():
             time.sleep(0.1)
 
     except KeyboardInterrupt:
         print(f"\n> Device execution interrupted. Shutting down...")
-    
+
     finally:
         break_event.set()
 
         for thread in threads:
-            thread.join()
-        
-        # Implement later. Turn off power to actuators.
-        '''
-        if GPIO:
-            GPIO.cleanup()
-        '''
+            try:
+                thread.join()
+            except:
+                pass
 
         print(f"\n> Device turned off.")
 

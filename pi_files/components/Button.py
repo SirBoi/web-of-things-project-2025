@@ -1,9 +1,10 @@
 import random
 import time
 import json
-import RPi.GPIO as GPIO
-import subprocess
-import os
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError:
+    from mock_gpio import GPIO
 
 
 class Button():
@@ -21,24 +22,18 @@ class Button():
         if (not self.simulated):
             GPIO.setmode(GPIO.BCM)
             GPIO.setup(self.PIN_NUMBER, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            
-            # Moze i ovako
-            # GPIO.add_event_detect(self.PIN_NUMBER, GPIO.RISING, callback=button_pressed, bouncetime=100)
 
         while not break_event.is_set():
             with counter_lock:
-                if (self.simulated):
-                    dht_batch.append((self.name, json.dumps(self.get_reading_simulated()), 0, True))
-                else:
-                    dht_batch.append((self.name, json.dumps(self.get_reading()), 0, True))
+                reading = self.get_reading_simulated() if self.simulated else self.get_reading()
+                dht_batch.append((self.name, json.dumps(reading), 0, True))
 
                 publish_data_counter["value"] += 1
-                
                 if publish_data_counter["value"] >= publish_data_limit["value"]:
                     publish_event.set()
 
             time.sleep(self.delay)
-        
+
         try:
             GPIO.cleanup()
         finally:
@@ -51,30 +46,28 @@ class Button():
             self.value = False
 
     def get_reading(self):
-        if (GPIO.input(self.PIN_NUMBER) == GPIO.LOW and not self.is_pressed):
+        # Button pressed = LOW (because pull-up)
+        pin_low = (GPIO.input(self.PIN_NUMBER) == GPIO.LOW)
+
+        if pin_low and not self.is_pressed:
             self.is_pressed = True
-        elif (GPIO.input(self.PIN_NUMBER) == GPIO.HIGH and self.is_pressed):
+        elif (not pin_low) and self.is_pressed:
+            # release edge -> toggle value
             self.is_pressed = False
             self.value = not self.value
 
-            # subprocess.run(["echo", "leon je pickica"])
-            # subprocess.run(["echo", "leon je picka"], shell=True)
-            # os.system("echo Hello")
-
         return self.formated_data()
-    
+
     def get_reading_simulated(self):
         if random.randrange(50) == 0:
             self.value = not self.value
-
         return self.formated_data()
-    
+
     def formated_data(self):
         return {
             "name": self.name,
             "type": self.type,
-            "value": float(self.value)
+            "fields": {
+                "state": int(bool(self.value))
+            }
         }
-
-    def button_pressed(self):
-        self.value = not self.value

@@ -1,7 +1,10 @@
 import random
 import time
 import json
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError:
+    from mock_gpio import GPIO
 
 
 class WebCamera():

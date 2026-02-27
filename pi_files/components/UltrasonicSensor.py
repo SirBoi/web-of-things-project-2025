@@ -1,7 +1,10 @@
 import random
 import time
 import json
-import RPi.GPIO as GPIO
+try:
+    import RPi.GPIO as GPIO
+except ModuleNotFoundError:
+    from mock_gpio import GPIO
 
 
 class UltrasonicSensor():
@@ -13,7 +16,7 @@ class UltrasonicSensor():
         self.TRIG_PIN_NUMBER = 1
         self.ECHO_PIN_NUMBER = 2
 
-        self.value = 20
+        self.value = 20.0
         self.dht_batch = None
 
     def run(self, break_event, dht_batch, publish_data_counter, publish_data_limit, counter_lock, publish_event):
@@ -26,18 +29,15 @@ class UltrasonicSensor():
 
         while not break_event.is_set():
             with counter_lock:
-                if (self.simulated):
-                    dht_batch.append((self.name, json.dumps(self.get_reading_simulated()), 0, True))
-                else:
-                    dht_batch.append((self.name, json.dumps(self.get_reading()), 0, True))
+                reading = self.get_reading_simulated() if self.simulated else self.get_reading()
+                dht_batch.append((self.name, json.dumps(reading), 0, True))
 
                 publish_data_counter["value"] += 1
-                
                 if publish_data_counter["value"] >= publish_data_limit["value"]:
                     publish_event.set()
 
             time.sleep(self.delay)
-        
+
         try:
             GPIO.cleanup()
         finally:
@@ -45,13 +45,13 @@ class UltrasonicSensor():
 
     def run_command(self, command_value):
         try:
-            if (command_value >= 1 and command_value <= 30):
-                self.value = command_value
-
-                if (self.dht_batch != None):
+            v = float(command_value)
+            if 1.0 <= v <= 30.0:
+                self.value = v
+                if self.dht_batch is not None:
                     self.dht_batch.append((self.name, json.dumps(self.formated_data()), 0, True))
         except:
-            0
+            pass
 
     def get_reading(self):
         GPIO.output(self.TRIG_PIN_NUMBER, False)
@@ -65,71 +65,36 @@ class UltrasonicSensor():
 
         max_iter = 100
 
-        iter = 0
+        it = 0
         while GPIO.input(self.ECHO_PIN_NUMBER) == 0:
-            if iter > max_iter:
-                #self.value = 0
+            if it > max_iter:
                 return self.formated_data()
-            
             pulse_start_time = time.time()
-            iter += 1
+            it += 1
 
-        iter = 0
+        it = 0
         while GPIO.input(self.ECHO_PIN_NUMBER) == 1:
-            if iter > max_iter:
-                #self.value = 0
+            if it > max_iter:
                 return self.formated_data()
-            
             pulse_end_time = time.time()
-            iter += 1
+            it += 1
 
         pulse_duration = pulse_end_time - pulse_start_time
-        self.value = (pulse_duration * 34300) / 2
+        self.value = (pulse_duration * 34300.0) / 2.0
 
         return self.formated_data()
-    
-    def get_reading_simulated(self):
-        self.value += (random.randrange(100) - 50) / 100
 
+    def get_reading_simulated(self):
+        self.value += (random.randrange(100) - 50) / 100.0
         if self.value < 1: self.value = 1
         if self.value > 30: self.value = 30
-
         return self.formated_data()
-    
+
     def formated_data(self):
         return {
             "name": self.name,
             "type": self.type,
-            "value": float(self.value)
+            "fields": {
+                "distance_cm": float(self.value)
+            }
         }
-
-'''
-GPIO.output(self.TRIG_PIN_NUMBER, False)
-time.sleep(0.06)
-GPIO.output(self.TRIG_PIN_NUMBER, True)
-time.sleep(0.00001)
-GPIO.output(self.TRIG_PIN_NUMBER, False)
-
-timeout = 0.04
-start_time = time.perf_counter()
-
-while GPIO.input(self.ECHO_PIN_NUMBER) == 0:
-    if time.perf_counter() - start_time > timeout:
-        self.value = 0
-        return self.formated_data()
-
-pulse_start = time.perf_counter()
-
-while GPIO.input(self.ECHO_PIN_NUMBER) == 1:
-    if time.perf_counter() - pulse_start > timeout:
-        self.value = 0
-        return self.formated_data()
-
-pulse_end = time.perf_counter()
-
-pulse_duration = pulse_end - pulse_start
-
-self.value = round((pulse_duration * 34300) / 2, 2)
-
-return self.formated_data()
-'''

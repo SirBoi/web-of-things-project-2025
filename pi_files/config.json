@@ -1,11 +1,12 @@
 {
-    "hostname": "192.168.107.169",
+    "ucionica": "192.168.107.169",
+    "hostname": "localhost",
     "port": 1883,
     "publish-data-limit": 50,
     
     "devices": {
         "PI1": {
-            "used": false,
+            "used": true,
             "DS1": {
                 "type": "button",
                 "category": "sensor",
@@ -73,7 +74,7 @@
             "DHT3": {
                 "type": "humidity_and_temperature_sensor",
                 "category": "sensor",
-                "simulated": false
+                "simulated": true
             },
             "GSG": {
                 "type": "gyroscope",
@@ -83,7 +84,7 @@
         },
 
         "PI3": {
-            "used": false,
+            "used": true,
             "DHT1": {
                 "type": "humidity_and_temperature_sensor",
                 "category": "sensor",

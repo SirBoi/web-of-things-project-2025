@@ -57,19 +57,44 @@ mqtt_client.on_message = lambda client, userdata, msg: save_to_db(json.loads(msg
 mqtt_client.connect("localhost", 1883, 60)
 mqtt_client.loop_start()
 
+# server.py
+write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+
 def save_to_db(data):
-    if data == None: return
+    if not data:
+        return
 
-    write_api = influxdb_client.write_api(write_options=SYNCHRONOUS)
+    measurement = data.get("name", "unknown")
+    p = Point(measurement).tag("name", measurement)
 
-    point = (
-        Point(data["name"])
-        .tag("name", data["name"])
-        .tag("type", data["type"])
-        .field("value", data["value"])
-    )
+    if "type" in data:
+        p = p.tag("type", str(data["type"]))
 
-    write_api.write(bucket=bucket, org=org, record=point)
+    fields = data.get("fields")
+    if isinstance(fields, dict) and fields:
+        for k, v in fields.items():
+            if isinstance(v, bool):
+                p = p.field(k, int(v))
+            elif isinstance(v, int):
+                p = p.field(k, v)
+            elif isinstance(v, float):
+                p = p.field(k, v)
+            elif isinstance(v, str):
+                p = p.field(k, v)
+            else:
+                continue
+    else:
+        v = data.get("value")
+        if isinstance(v, bool):
+            p = p.field("value", v)
+        elif isinstance(v, int):
+            p = p.field("value", v)
+        elif isinstance(v, float):
+            p = p.field("value", v)
+        elif isinstance(v, str):
+            p = p.field("value", v)
+
+    write_api.write(bucket=bucket, org=org, record=p)
 
 def handle_influx_query(query):
     try:
@@ -86,16 +111,13 @@ def handle_influx_query(query):
     
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
-
+    
 @app.route('/store_data', methods=['POST'])
-def store_data():
+def store_data_route():
     try:
         data = request.get_json()
-
-        store_data(data)
-        
+        save_to_db(data)
         return jsonify({"status": "success"})
-    
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
