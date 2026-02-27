@@ -1,0 +1,120 @@
+{
+    "ucionica": "192.168.107.169",
+    "hostname": "localhost",
+    "port": 1883,
+    "publish-data-limit": 50,
+    
+    "devices": {
+        "PI1": {
+            "used": true,
+            "DS1": {
+                "type": "button",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DL": {
+                "type": "led_diode",
+                "category": "actuator",
+                "simulated": true
+            },
+            "DUS1": {
+                "type": "ultrasonic_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DB": {
+                "type": "buzzer",
+                "category": "actuator",
+                "simulated": true
+            },
+            "DPIR1": {
+                "type": "motion_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DMS": {
+                "type": "membrane_switch",
+                "category": "sensor",
+                "simulated": true
+            },
+            "WEBC": {
+                "type": "web_camera",
+                "category": "sensor",
+                "simulated": false
+            }
+        },
+
+        "PI2": {
+            "used": true,
+            "DS2": {
+                "type": "button",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DUS2": {
+                "type": "ultrasonic_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DPIR2": {
+                "type": "motion_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "4SD": {
+                "type": "four_digit_seven_segment_display",
+                "category": "actuator",
+                "simulated": true
+            },
+            "BTN": {
+                "type": "button",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DHT3": {
+                "type": "humidity_and_temperature_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "GSG": {
+                "type": "gyroscope",
+                "category": "sensor",
+                "simulated": true
+            }
+        },
+
+        "PI3": {
+            "used": true,
+            "DHT1": {
+                "type": "humidity_and_temperature_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "DHT2": {
+                "type": "humidity_and_temperature_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "IR": {
+                "type": "infrared_sensor",
+                "category": "sensor",
+                "simulated": true
+            },
+            "BRGB": {
+                "type": "rgb_led_diode",
+                "category": "actuator",
+                "simulated": true
+            },
+            "LCD": {
+                "type": "lcd_display",
+                "category": "actuator",
+                "simulated": true
+            },
+            "DPIR3": {
+                "type": "motion_sensor",
+                "category": "sensor",
+                "simulated": true
+            }
+        }
+    }
+}
