@@ -40,7 +40,7 @@
             "WEBC": {
                 "type": "web_camera",
                 "category": "sensor",
-                "simulated": true
+                "simulated": false
             }
         },
 

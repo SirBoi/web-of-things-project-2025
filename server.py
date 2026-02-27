@@ -8,8 +8,8 @@ import json
 app = Flask(__name__)
 
 # InfluxDB Configuration
-token = "F9xWKba1m3XN3Ds69w6eW0F9F18c3i9t5bicNXdfTB4Vv3UFvPkNN7nY2IwjfoOpPi1PoObF9g1-klq6dDQl3Q=="
-org = "FTN"
+token = "1K6in3aPsTcnV2mE03g3D-4Kx2ex8-y5OLQEKHJhHwCWe09-6p5c0hkUcM-QAjN8qdLthN23F07Nj9RWSSQeEQ=="
+org = "ftn"
 url = "http://localhost:8086"
 bucket = "example_db"
 influxdb_client = InfluxDBClient(url=url, token=token, org=org)
